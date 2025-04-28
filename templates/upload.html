@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Big Data Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+
+    <h1>Загрузка CSV-файла</h1>
+
+    <form id="upload-form" action="/preview" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <input type="file" class="form-control" id="fileInput" name="file" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Загрузить</button>
+    </form>
+
+    <!-- Прогресс бар -->
+    <div class="progress mt-4" style="height: 25px; display:none;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated"
+             role="progressbar" style="width: 0%;" id="progressBar">0%</div>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const progressBar = document.getElementById('progressBar');
+        const progressContainer = document.querySelector('.progress');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/preview', true);
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressContainer.style.display = 'block';
+                    progressBar.style.width = percentComplete.toFixed(0) + '%';
+                    progressBar.innerText = percentComplete.toFixed(0) + '%';
+                }
+            });
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    document.open();
+                    document.write(xhr.responseText);
+                    document.close();
+                } else {
+                    alert('Ошибка загрузки файла.');
+                }
+            };
+
+
+
+            xhr.send(formData);
+        });
+    </script>
+
+</body>
+</html>
