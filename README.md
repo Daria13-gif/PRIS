@@ -4,7 +4,118 @@
 - Жижилева Арина К3342
 
 # Лабораторная работа №1: k8s
-(в процессе выполнения)
+
+Задачи:
+1. развернуть minicube 
+2. создать docker образ вашего приложения;
+3. создать deployment;
+4. установить кол-во подов на 3
+5. добавьте Metrics Server (kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml).
+6. настройте Horizontal Pod Autoscaler (HPA), чтобы масштабировать поды при увеличении нагрузки (kubectl autoscale deployment my-app --cpu-percent=50 --min=2 --max=5).
+7. настройте Prometheus и Grafana через (helm install prometheus prometheus-community/kube-prometheus-stack). Настройте дашборды в Grafana для мониторинга нагрузки (хотя бы один)
+
+
+## Установка бинарного файла kubectl с помощью curl в Linux
+Загрузили последнюю версию с помощью команды:
+```
+curl -LO https://dl.k8s.io/release/`curl -LS https://dl.k8s.io/release/stable.txt`/bin/linux/amd64/kubectl
+```
+
+Сделали бинарный файл kubectl исполняемым:
+```
+chmod +x ./kubectl
+```
+
+Переместили бинарный файл в директорию из переменной окружения PATH:
+```
+sudo mv ./kubectl /usr/local/bin/kubectl
+```
+
+## Minikube
+
+Установили minikube с помощью инструкции https://minikube.sigs.k8s.io/docs/start/?arch=%2Fwindows%2Fx86-64%2Fstable%2F.exe+download
+```
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+sudo chmod +x /usr/local/bin/minikube
+```
+Запускаем docker desktop
+Запускаем minikube 
+```
+minikube start --driver=docker --cpus=2 --memory=4096
+```
+в новом терминале запускаем minikube dashboard. Команда dashboard активирует дополнение dashboard и открывает прокси в веб-браузере по умолчанию. В этой панели можно создавать такие Kubernetes-ресурсы, как Deployment и Service.
+
+## Docker образ
+
+Создаем dockerfile
+
+Собираем образ:
+```
+eval $(minikube docker-env)
+docker build -t pris-proj:1.0 .
+```
+Создаем файл deployment.yaml, service.yaml, app.js
+
+Применяем конфигурацию:
+```
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+## Установка Metrics Server
+```
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
+Проверяем работу:
+```
+kubectl top pods
+```
+
+## Настройка Horizontal Pod Autoscaler (HPA)
+```
+kubectl autoscale deployment my-app --cpu-percent=50 --min=2 --max=5
+```
+Проверяем HPA:
+```
+kubectl get hpa
+```
+## Установка Prometheus и Grafana с помощью Helm
+
+Сначала установите Helm, если он еще не установлен:
+```
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+Добавьте репозиторий и установите:
+```
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install prometheus prometheus-community/kube-prometheus-stack
+```
+
+Нужно подождать несколько минут, пока grafana настраивается.
+
+Откройте доступ к Grafana:
+```
+kubectl port-forward service/prometheus-grafana 3000:80
+```
+
+Откройте Grafana в браузере: http://localhost:3000
+
+Создаем дашборд, в queries вставляем, смотрим нагрузку
+```
+sum(rate(container_cpu_usage_seconds_total{namespace="default", pod=~"pris-proj-.+"}[1m])) by (pod)
+```
+Если визуализация не показательная можем создать тестовую нагрузку
+```
+kubectl run load-generator --image=busybox --restart=Never -- /bin/sh -c "while true; do wget -q -O- http://pris-proj; done"
+```
+потом меняем на
+```
+ kube_deployment_status_replicas{deployment="my-node-app"}
+```
+смотрим количество подов.
 
 # Лабораторная работа №2: Разработка микросервисной архитектуры с GraphQL
 
